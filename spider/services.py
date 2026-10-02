@@ -54,7 +54,7 @@ def image_prompt(question, page_count, exclude_quotes=None):
         else ""
     )
     return (
-        "You are locating one passage on a page image for a reader.\n"
+        "You are locating one passage in the supplied page images for a reader.\n"
         f'The reader asks: "{question}"\n\n'
         f"{pages}"
         f"{exclude_block(exclude_quotes)}"
@@ -72,7 +72,7 @@ def parse_image(data_url):
     if not sep or not encoded:
         raise AskError("bad_image", "One of the page images was empty.")
     if len(encoded) > 2_000_000:
-        raise AskError("bad_image", "A page image was too large. Try fewer pages, or a text PDF.")
+        raise AskError("bad_image", "A page image was too large. Try a smaller image, or a text PDF.")
     media = header[5:].split(";")[0].strip().lower()
     if media not in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
         raise AskError("bad_image", "Page images must be JPEG or PNG.")

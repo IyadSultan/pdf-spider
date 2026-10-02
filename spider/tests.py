@@ -5,12 +5,12 @@ import tempfile
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import SavedHighlight, SavedPaper, Usage
-from .services import text_prompt
+from .services import clean_images, image_prompt, text_prompt
 
 
 @override_settings(ANTHROPIC_API_KEY="")
@@ -125,6 +125,17 @@ class SearchLimitTests(TestCase):
         usage.refresh_from_db()
         self.assertFalse(usage.locked)
         self.assertEqual(usage.use_count, 0)
+
+
+class PageImageTests(SimpleTestCase):
+    def test_image_search_keeps_every_supplied_page(self):
+        images = ["data:image/jpeg;base64,YQ==" for _ in range(12)]
+
+        cleaned = clean_images(images)
+        prompt = image_prompt("Find the result", len(cleaned))
+
+        self.assertEqual(len(cleaned), 12)
+        self.assertIn("There are 12 page images", prompt)
 
 
 class PageTests(TestCase):

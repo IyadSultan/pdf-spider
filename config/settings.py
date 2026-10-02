@@ -35,22 +35,28 @@ def _flag(name, default="false"):
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "dev-only-not-for-a-public-repl-set-DJANGO_SECRET_KEY",
-)
-
 ON_REPLIT = bool(os.environ.get("REPLIT_DEV_DOMAIN") or os.environ.get("REPL_ID"))
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if ON_REPLIT:
+        raise RuntimeError("DJANGO_SECRET_KEY must be set in Replit Secrets before starting Paper Spider.")
+    SECRET_KEY = "dev-only-not-for-local-development"
 
 # On Replit this stays off unless you set DJANGO_DEBUG=true. On your own computer it stays on so pages and error messages work without extra steps.
 DEBUG = _flag("DJANGO_DEBUG", "false" if ON_REPLIT else "true")
 
 _default_hosts = "localhost,127.0.0.1,.replit.dev,.replit.app,.repl.co"
-ALLOWED_HOSTS = [
+_allowed_hosts = [
     host.strip()
     for host in os.environ.get("DJANGO_ALLOWED_HOSTS", _default_hosts).split(",")
     if host.strip()
 ]
+for _env_name in ("REPLIT_DEV_DOMAIN", "REPLIT_DOMAINS"):
+    for _host in os.environ.get(_env_name, "").split(","):
+        _host = _host.strip().removeprefix("https://").removeprefix("http://").split("/")[0]
+        if _host:
+            _allowed_hosts.append(_host)
+ALLOWED_HOSTS = list(dict.fromkeys(_allowed_hosts))
 
 # Browsers send a CSRF token with each search. These are the https origins allowed to do that.
 CSRF_TRUSTED_ORIGINS = [
@@ -60,9 +66,10 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 for _env_name in ("REPLIT_DEV_DOMAIN", "REPLIT_DOMAINS"):
     for _host in os.environ.get(_env_name, "").split(","):
-        _host = _host.strip()
+        _host = _host.strip().removeprefix("https://").removeprefix("http://").split("/")[0]
         if _host:
             CSRF_TRUSTED_ORIGINS.append(f"https://{_host}")
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -84,6 +91,11 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Replit embeds the development site in a cross-origin preview frame. Keep
+# clickjacking protection enabled everywhere else, including deployments.
+if os.environ.get("REPLIT_DEV_DOMAIN"):
+    MIDDLEWARE.remove("django.middleware.clickjacking.XFrameOptionsMiddleware")
 
 ROOT_URLCONF = "config.urls"
 
@@ -160,7 +172,6 @@ MAX_PDF_BYTES = 30 * 1024 * 1024
 MAX_USES = 10
 # These usernames never lock. Everyone else still stops after MAX_USES searches.
 UNLIMITED_USERNAMES = ["isultan"]
-# Picture reading uses every page the browser sends. There is no 4-page cap.
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5").strip()
