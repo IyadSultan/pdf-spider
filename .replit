@@ -12,3 +12,11 @@ PORT = "8000"
 
 [deployment]
 run = ["bash", "run.sh"]
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
