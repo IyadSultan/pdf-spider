@@ -441,13 +441,11 @@
       if (Math.hypot(sp.tx - sp.x, sp.ty - sp.y) < 2 || v * dt >= d) {
         sp.x = sp.tx;
         sp.y = sp.ty;
-        if (sp.mode === "rest") markArrived();
       }
       let a = Math.atan2(dy, dx) - sp.h;
       a = Math.atan2(Math.sin(a), Math.cos(a));
       sp.h += a * Math.min(1, dt * 7);
     } else if (sp.mode === "rest" && !RM) {
-      markArrived();
       settleAlive(dt);
     } else {
       arrive(dt);
@@ -457,7 +455,65 @@
     }
     stepLegs(dt);
     if (d <= 2 && (sp.mode === "rest" || sp.mode === "idle") && !RM) aliveTap(dt);
+    noteArrival();
+    glideScroll(dt);
+    if (sp.mode === "rest") markArrived();
     keepSpiderInFrame();
+  }
+
+  /* The furthest the window can actually scroll. Centering the last lines asks for a spot past this. */
+  function maxScrollY() {
+    const el = document.scrollingElement || document.documentElement;
+    return Math.max(0, el.scrollHeight - window.innerHeight);
+  }
+
+  function scrollGoal() {
+    const g = mission && mission.glide;
+    if (!g) return window.scrollY;
+    return clamp(g.start + g.need, 0, maxScrollY());
+  }
+
+  /* Move the page with the spider. The page never gets ahead of the walk. */
+  function glideScroll(dt) {
+    const g = mission && mission.glide;
+    if (!g || !mission.rest) return;
+    const r = doc.getBoundingClientRect();
+    const k = (r.width / S.baseW) || 1;
+    const left = Math.hypot(sp.x - mission.rest[0], sp.y - mission.rest[1]);
+    const progress = mission.atPark || g.dist < 2 ? 1 : clamp(1 - left / g.dist, 0, 1);
+    const finalGoal = scrollGoal();
+    const target = g.start + (finalGoal - g.start) * progress;
+    const before = window.scrollY;
+    const delta = target - before;
+    if (Math.abs(delta) < 1) {
+      if (progress >= 1) g.reached = true;
+      return;
+    }
+    const step = clamp(delta, -sp.speed * k * dt, sp.speed * k * dt);
+    window.scrollBy(0, step);
+    if (progress >= 1 && Math.abs(window.scrollY - before) < 0.5) g.reached = true;
+  }
+
+  function scrollCaughtUp() {
+    const g = mission && mission.glide;
+    if (!g || g.reached) return true;
+    return Math.abs(window.scrollY - scrollGoal()) < 8;
+  }
+
+  /* True when the chosen lines are inside the visible part of the page. */
+  function passageInView() {
+    if (!mission) return false;
+    const r = doc.getBoundingClientRect();
+    const k = (r.width / S.baseW) || 1;
+    const y = mission.focusY == null ? mission.rest[1] : mission.focusY;
+    const screenY = r.top + y * k;
+    return screenY > 8 && screenY < innerHeight - bar.offsetHeight - 8;
+  }
+
+  /* Remember that the spider reached the passage, even while it sways afterward. */
+  function noteArrival() {
+    if (!mission || mission.atPark || !mission.rest) return;
+    if (Math.hypot(sp.x - mission.rest[0], sp.y - mission.rest[1]) <= 10) mission.atPark = true;
   }
 
   /* Keep the spider on the part of the page that is on screen, so scrolling the PDF does not lose it. */
@@ -489,41 +545,55 @@
   }
 
   function markArrived() {
-    if (!mission || mission.shown || !mission.rest) return;
-    if (Math.hypot(sp.x - mission.rest[0], sp.y - mission.rest[1]) > 8) return;
+    if (!mission || mission.shown || !mission.atPark) return;
+    if (!RM && !passageInView() && !scrollCaughtUp()) return;
     mission.shown = true;
+    mission.glide = null;
     lightMission(mission);
+  }
+
+  /* Plan a smooth scroll that finishes when the spider finishes walking. */
+  function beginScroll(focusY, park) {
+    const r = doc.getBoundingClientRect();
+    const k = (r.width / S.baseW) || 1;
+    const need = r.top + focusY * k - (innerHeight - bar.offsetHeight) / 2;
+    if (RM) {
+      window.scrollBy(0, need);
+      mission.glide = null;
+      return;
+    }
+    const dist = Math.hypot(park[0] - sp.x, park[1] - sp.y);
+    mission.glide = { start: window.scrollY, need: need, dist: Math.max(dist, 1) };
+    const screenTrip = Math.max(dist * k, Math.abs(need));
+    sp.speed = clamp(screenTrip / k / 1.2, 180 * U, 480 * U);
   }
 
   function startMission(m) {
     mission = m;
     m.i = 0;
     m.shown = false;
+    m.atPark = false;
+    m.glide = null;
     S.lit = new Set();
     S.box = m.box || null;
     S.boxOn = false;
     const park = m.rest;
     const focusY = m.focusY == null ? park[1] : m.focusY;
-    const r = doc.getBoundingClientRect();
-    window.scrollBy(0, r.top + focusY * (r.width / S.baseW) - (innerHeight - bar.offsetHeight) / 2);
     sp.path = [];
     sp.tx = park[0];
     sp.ty = park[1];
-    sp.homeX = park[0];
-    sp.homeY = park[1];
+    sp.homeX = null;
     sp.mode = "rest";
-    const r2 = doc.getBoundingClientRect();
-    const k = (r2.width / S.baseW) || 1;
-    const screenY = r2.top + sp.y * k;
-    const onScreen = screenY > 40 && screenY < innerHeight - bar.offsetHeight - 40;
-    const alreadyThere = Math.hypot(sp.x - park[0], sp.y - park[1]) < 3;
-    if (!onScreen || RM) {
+    beginScroll(focusY, park);
+    if (Math.hypot(sp.x - park[0], sp.y - park[1]) <= 10) mission.atPark = true;
+    if (RM) {
       sp.x = park[0];
       sp.y = park[1];
       sp.h = -Math.PI / 2;
       initLegs();
+      mission.atPark = true;
       markArrived();
-    } else if (alreadyThere) {
+    } else if (mission.atPark) {
       markArrived();
     }
   }

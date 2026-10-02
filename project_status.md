@@ -14,6 +14,8 @@
 - Saved PDFs are stored as files named username_date_title.pdf. Your papers lists each PDF with its questions and highlights.
 - The spider parks beside a match. The words stay visible and are only highlighted.
 - The page highlight waits until the spider reaches the passage. The quote still shows in the box below as soon as it is found.
+- The page scrolls smoothly with the spider. It does not jump ahead of the walk.
+- Find more still highlights the passage when the spider arrives, including near the top or bottom of the paper where the page cannot scroll any further.
 - The account named isultan is unlimited. Other accounts still lock after 10 searches.
 
 ## Current tasks
