@@ -9,9 +9,10 @@ urlpatterns = [
     path("accounts/register/", views.register, name="register"),
     path("accounts/login/", views.SpiderLogin.as_view(), name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path("api/ask/", views.api_ask, name="api_ask"),
-    path("api/papers/", views.save_paper, name="save_paper"),
-    path("api/papers/<int:pk>/", views.paper_detail, name="paper_detail"),
-    path("api/papers/<int:pk>/file/", views.paper_file, name="paper_file"),
-    path("api/highlights/", views.save_highlight, name="save_highlight"),
+    # Paper Spider uses a separate prefix because the workspace API artifact owns /api.
+    path("paper-api/ask/", views.api_ask, name="api_ask"),
+    path("paper-api/papers/", views.save_paper, name="save_paper"),
+    path("paper-api/papers/<int:pk>/", views.paper_detail, name="paper_detail"),
+    path("paper-api/papers/<int:pk>/file/", views.paper_file, name="paper_file"),
+    path("paper-api/highlights/", views.save_highlight, name="save_highlight"),
 ]

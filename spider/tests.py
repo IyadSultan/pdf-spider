@@ -139,7 +139,19 @@ class PageImageTests(SimpleTestCase):
 
 
 class PageTests(TestCase):
-    def test_signed_in_reader_shows_the_spider(self):
+    def test_reader_api_routes_do_not_use_replit_api_artifact_prefix(self):
+          api_paths = (
+              reverse("api_ask"),
+              reverse("save_paper"),
+              reverse("paper_detail", args=[1]),
+              reverse("paper_file", args=[1]),
+              reverse("save_highlight"),
+          )
+          for path in api_paths:
+              with self.subTest(path=path):
+                  self.assertTrue(path.startswith("/paper-api/"), path)
+
+        def test_signed_in_reader_shows_the_spider(self):
         User.objects.create_user("bea", password="safe-password-123")
         self.client.login(username="bea", password="safe-password-123")
         response = self.client.get(reverse("app"))
