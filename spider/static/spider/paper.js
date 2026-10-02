@@ -158,7 +158,7 @@
     }
     finishDoc();
     $("note").textContent = S.mode === "ink"
-      ? "This PDF has no text layer, so Claude reads it as pictures and the highlight is approximate."
+      ? "This PDF has no text layer, so Claude reads every page as a picture and the highlight is approximate."
       : "";
     status("");
   }
@@ -1083,8 +1083,8 @@
       sp.mode = "idle";
       return;
     }
-    status("Claude is looking at the page. This can take up to a minute.");
     const pages = S.pages;
+    status("Claude is looking at all " + pages.length + " pages. Large PDFs can take longer.");
     const images = [];
     for (const page of pages) {
       const blob = await toBlob(page.canvas, "image/jpeg");
@@ -1120,7 +1120,7 @@
     showResult(
       quote,
       String(d.why || ""),
-      "Chosen by Claude from the picture. The box is approximate.",
+      "Chosen by Claude from the page images. The box is approximate.",
       missionFromBox(box)
     );
     $("more").hidden = false;
