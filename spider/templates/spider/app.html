@@ -1,0 +1,71 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paper spider</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{% static 'spider/paper.css' %}">
+</head>
+<body>
+<header>
+  <h1>Paper spider</h1>
+  <p>Open a paper, say what to look for, and the matching words are highlighted. The spider waits beside the passage so it does not cover the text. Find more looks for a different place.{% if unlimited %} This account does not run out of searches.{% else %} Each search uses one of your {{ max_uses }} tries. After the last one, this account locks.{% endif %}</p>
+  <div class="account">
+    <span id="uses"></span>
+    <span>{{ user.username }}</span>
+    <a href="{% url 'history' %}">Your papers</a>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button class="link" type="submit">Log out</button>
+    </form>
+  </div>
+</header>
+<main id="doc" class="night" aria-label="Document"></main>
+<p id="note"></p>
+<section id="past" hidden>
+  <h2>Saved highlights</h2>
+  <ul id="pastList"></ul>
+</section>
+<div id="spacer"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<div id="bar"><div class="in">
+  <div id="result" hidden>
+    <p id="quote"></p>
+    <p id="why"></p>
+    <p id="src"><span id="srcText"></span><button id="again" type="button">Walk there again</button></p>
+  </div>
+  <div class="row">
+    <input id="q" type="text" aria-label="What should the spider find?" value="Find the most important finding in this paper">
+    <button id="go" class="main" type="button">Find it</button>
+    <button id="more" class="quiet" type="button" hidden title="Look for a different passage. This uses one search.">Find more</button>
+  </div>
+  <div class="row">
+    <label class="quiet">Open a PDF or image<input id="file" type="file" accept="application/pdf,image/*"></label>
+    <button id="night" class="quiet" type="button" aria-pressed="true">Dark page</button>
+    <span id="status" role="status"></span>
+  </div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  window.PAPER_SPIDER = {
+    askUrl: "{% url 'api_ask' %}",
+    savePaperUrl: "{% url 'save_paper' %}",
+    saveHighlightUrl: "{% url 'save_highlight' %}",
+    openPaperId: {{ open_paper.id|default:"null" }},
+    openPaperUrl: "{% if open_paper %}{% url 'paper_file' open_paper.id %}{% endif %}",
+    paperDetailUrl: "{% if open_paper %}{% url 'paper_detail' open_paper.id %}{% endif %}",
+    csrfToken: "{{ csrf_token }}",
+    usesLeft: {{ uses_left }},
+    maxUses: {{ max_uses }},
+    unlimited: {{ unlimited|yesno:"true,false" }},
+    claudeReady: {{ claude_ready|yesno:"true,false" }},
+    locked: false
+  };
+</script>
+<script src="{% static 'spider/paper.js' %}"></script>
+</body>
+</html>

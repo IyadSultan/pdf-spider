@@ -1,0 +1,14 @@
+modules = ["python-3.12"]
+run = "bash run.sh"
+entrypoint = "run.sh"
+
+# The app listens on 8000. Replit shows that as the web preview.
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[env]
+PORT = "8000"
+
+[deployment]
+run = ["bash", "run.sh"]

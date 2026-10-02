@@ -1,0 +1,12 @@
+{% extends "spider/base.html" %}
+{% block title %}Account locked · Paper spider{% endblock %}
+{% block content %}
+<h1 class="h2 mb-2">This account is locked</h1>
+<p>{{ user.username }} has used all {{ max_uses }} searches. Further searches are turned off.</p>
+<p class="text-secondary">Opening the site again will not reset the count. The person who runs this site can unlock the account from the admin page.</p>
+<p><a href="{% url 'history' %}">Your papers</a> still lists the PDFs, questions, and highlights saved before the lock.</p>
+<form method="post" action="{% url 'logout' %}" class="mt-3">
+  {% csrf_token %}
+  <button class="btn btn-accent" type="submit">Log out</button>
+</form>
+{% endblock %}

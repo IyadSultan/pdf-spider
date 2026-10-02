@@ -1,0 +1,21 @@
+{% extends "spider/base.html" %}
+{% block title %}Sign in · Paper spider{% endblock %}
+{% block content %}
+<h1 class="h2 mb-2">Paper spider</h1>
+<p class="text-secondary">Sign in to open a paper and search it. Each account can search 10 times. After the 10th search, the account locks.</p>
+<form method="post" class="mt-3">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+  {% endif %}
+  {% for field in form %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+  {% endfor %}
+  <button class="btn btn-accent w-100" type="submit">Sign in</button>
+</form>
+<p class="mt-3 mb-0">No account yet? <a href="{% url 'register' %}">Create one</a></p>
+{% endblock %}
