@@ -17,6 +17,7 @@
 - The page scrolls smoothly with the spider. It does not jump ahead of the walk.
 - Find more still highlights the passage when the spider arrives, including near the top or bottom of the paper where the page cannot scroll any further.
 - The account named isultan is unlimited. Other accounts still lock after 10 searches.
+- The browser tab shows a small spider icon.
 
 ## Current tasks
 
