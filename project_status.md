@@ -13,6 +13,7 @@
 - Added Find more, which looks for a different passage and counts as one search.
 - Saved PDFs are stored as files named username_date_title.pdf. Your papers lists each PDF with its questions and highlights.
 - The spider parks beside a match. The words stay visible and are only highlighted.
+- The page highlight waits until the spider reaches the passage. The quote still shows in the box below as soon as it is found.
 - The account named isultan is unlimited. Other accounts still lock after 10 searches.
 
 ## Current tasks

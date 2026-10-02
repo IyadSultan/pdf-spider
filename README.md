@@ -53,7 +53,7 @@ Optional: copy `.env.example` to `.env` and fill in the same names as the Replit
 
 ## What Claude does
 
-When `ANTHROPIC_API_KEY` is set, the server sends the question and the page text (or up to 4 page pictures) to Claude. The key stays on the server. Visitors never see it.
+When `ANTHROPIC_API_KEY` is set, the server sends the question and the page text, or the page pictures, to Claude. The whole PDF is shown. The key stays on the server. Visitors never see it.
 
 The model name defaults to `claude-haiku-4-5`. To use another Claude model, set `ANTHROPIC_MODEL` in Secrets.
 

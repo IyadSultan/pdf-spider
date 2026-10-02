@@ -160,7 +160,7 @@ MAX_PDF_BYTES = 30 * 1024 * 1024
 MAX_USES = 10
 # These usernames never lock. Everyone else still stops after MAX_USES searches.
 UNLIMITED_USERNAMES = ["isultan"]
-MAX_IMAGE_PAGES = 4
+# Picture reading uses every page the browser sends. There is no 4-page cap.
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5").strip()

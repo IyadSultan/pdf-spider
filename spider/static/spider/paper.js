@@ -6,7 +6,6 @@
   const $ = (id) => document.getElementById(id);
   const doc = $("doc"), fx = $("fx"), ctx = fx.getContext("2d"), bar = $("bar");
   const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const MAXP = 10;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const cfg = window.PAPER_SPIDER || { usesLeft: 0, maxUses: 10, unlimited: false, claudeReady: false, locked: false };
 
@@ -124,7 +123,7 @@
     S.mode = "text";
     const W = docWidth();
     S.baseW = W;
-    const n = Math.min(pdf.numPages, MAXP);
+    const n = pdf.numPages;
     let y = 0;
     let dpr = Math.min(devicePixelRatio || 1, 2);
     if (W > 700) dpr = Math.min(dpr, 1.5);
@@ -158,11 +157,9 @@
       for (const pg of S.pages) inkFootholds(pg.canvas, pg.y0, W, pg.h);
     }
     finishDoc();
-    $("note").textContent =
-      (pdf.numPages > n ? "Showing the first " + n + " of " + pdf.numPages + " pages. " : "") +
-      (S.mode === "ink"
-        ? "This PDF has no text layer, so Claude reads it as pictures and the highlight is approximate."
-        : "");
+    $("note").textContent = S.mode === "ink"
+      ? "This PDF has no text layer, so Claude reads it as pictures and the highlight is approximate."
+      : "";
     status("");
   }
 
@@ -444,11 +441,13 @@
       if (Math.hypot(sp.tx - sp.x, sp.ty - sp.y) < 2 || v * dt >= d) {
         sp.x = sp.tx;
         sp.y = sp.ty;
+        if (sp.mode === "rest") markArrived();
       }
       let a = Math.atan2(dy, dx) - sp.h;
       a = Math.atan2(Math.sin(a), Math.cos(a));
       sp.h += a * Math.min(1, dt * 7);
     } else if (sp.mode === "rest" && !RM) {
+      markArrived();
       settleAlive(dt);
     } else {
       arrive(dt);
@@ -458,47 +457,75 @@
     }
     stepLegs(dt);
     if (d <= 2 && (sp.mode === "rest" || sp.mode === "idle") && !RM) aliveTap(dt);
-    if (sp.mode === "go" && mission) {
-      const r = doc.getBoundingClientRect(), k = r.width / S.baseW;
-      const focusY = mission.focusY == null ? sp.y : mission.focusY;
-      const vy = r.top + focusY * k, mid = (innerHeight - bar.offsetHeight) / 2, off = vy - mid;
-      if (Math.abs(off) > 30) window.scrollBy(0, off * Math.min(1, dt * 6));
-    }
+    keepSpiderInFrame();
   }
 
-  /* Highlight the passage immediately. The spider parks beside it and is not drawn on top of those words. */
+  /* Keep the spider on the part of the page that is on screen, so scrolling the PDF does not lose it. */
+  function keepSpiderInFrame() {
+    if (!S.pages.length || sp.mode === "go") return;
+    if (mission && !mission.shown) return;
+    const r = doc.getBoundingClientRect();
+    const k = (r.width / S.baseW) || 1;
+    const viewTop = Math.max(r.top, 8);
+    const viewBot = Math.min(r.bottom, innerHeight - bar.offsetHeight - 8);
+    if (viewBot - viewTop < 80) return;
+    const screenY = r.top + sp.y * k;
+    const margin = 56;
+    if (screenY > viewTop + margin && screenY < viewBot - margin) return;
+    const targetScreen = viewTop + (viewBot - viewTop) * 0.42;
+    const y = clamp((targetScreen - r.top) / k, 8, Math.max(8, S.H - 8));
+    const x = clamp(S.baseW * 0.1, 32 * U, S.baseW - 40 * U);
+    sp.x = sp.tx = x;
+    sp.y = sp.ty = y;
+    sp.homeX = x;
+    sp.homeY = y;
+    if (sp.homeH == null) sp.homeH = sp.h;
+  }
+
+  /* Paint the passage only after the spider has reached it. The quote in the box below can show sooner. */
   function lightMission(m) {
     if (m.words) for (let i = m.words[0]; i <= m.words[1]; i++) S.lit.add(i);
     if (m.box) S.boxOn = true;
   }
 
+  function markArrived() {
+    if (!mission || mission.shown || !mission.rest) return;
+    if (Math.hypot(sp.x - mission.rest[0], sp.y - mission.rest[1]) > 8) return;
+    mission.shown = true;
+    lightMission(mission);
+  }
+
   function startMission(m) {
     mission = m;
     m.i = 0;
+    m.shown = false;
     S.lit = new Set();
     S.box = m.box || null;
     S.boxOn = false;
-    lightMission(m);
     const park = m.rest;
-    if (RM) {
-      sp.x = sp.tx = park[0];
-      sp.y = sp.ty = park[1];
+    const focusY = m.focusY == null ? park[1] : m.focusY;
+    const r = doc.getBoundingClientRect();
+    window.scrollBy(0, r.top + focusY * (r.width / S.baseW) - (innerHeight - bar.offsetHeight) / 2);
+    sp.path = [];
+    sp.tx = park[0];
+    sp.ty = park[1];
+    sp.homeX = park[0];
+    sp.homeY = park[1];
+    sp.mode = "rest";
+    const r2 = doc.getBoundingClientRect();
+    const k = (r2.width / S.baseW) || 1;
+    const screenY = r2.top + sp.y * k;
+    const onScreen = screenY > 40 && screenY < innerHeight - bar.offsetHeight - 40;
+    const alreadyThere = Math.hypot(sp.x - park[0], sp.y - park[1]) < 3;
+    if (!onScreen || RM) {
+      sp.x = park[0];
+      sp.y = park[1];
       sp.h = -Math.PI / 2;
       initLegs();
-      sp.mode = "rest";
-      sp.path = [];
-      const r = doc.getBoundingClientRect();
-      const focusY = m.focusY == null ? park[1] : m.focusY;
-      window.scrollBy(0, r.top + focusY * (r.width / S.baseW) - innerHeight / 3);
-      return;
+      markArrived();
+    } else if (alreadyThere) {
+      markArrived();
     }
-    sp.mode = "go";
-    sp.path = [[park[0], sp.y], park];
-    const p = sp.path.shift();
-    sp.tx = p[0];
-    sp.ty = p[1];
-    const d = Math.hypot(sp.tx - sp.x, sp.ty - sp.y);
-    sp.speed = Math.max(340 * U, d / 2.2);
   }
 
   function parkBeside(x0, y0, y1) {
@@ -987,7 +1014,7 @@
       return;
     }
     status("Claude is looking at the page. This can take up to a minute.");
-    const pages = S.pages.slice(0, 4);
+    const pages = S.pages;
     const images = [];
     for (const page of pages) {
       const blob = await toBlob(page.canvas, "image/jpeg");
@@ -1018,15 +1045,12 @@
       y1: pg.y0 + Math.max(f[1], f[3]) * pg.h,
     };
     status("");
-    const extra = S.pages.length > pages.length
-      ? ", and only the first " + pages.length + " page" + (pages.length > 1 ? "s were" : " was") + " read."
-      : ".";
     const quote = String(d.quote || "");
     foundQuotes.push(quote);
     showResult(
       quote,
       String(d.why || ""),
-      "Chosen by Claude from the picture. The box is approximate" + extra,
+      "Chosen by Claude from the picture. The box is approximate.",
       missionFromBox(box)
     );
     $("more").hidden = false;

@@ -83,7 +83,7 @@ def clean_images(raw):
     if not isinstance(raw, list) or not raw:
         raise AskError("bad_image", "No page image was sent.")
     cleaned = []
-    for item in raw[: settings.MAX_IMAGE_PAGES]:
+    for item in raw:
         cleaned.append(parse_image(item))
     return cleaned
 

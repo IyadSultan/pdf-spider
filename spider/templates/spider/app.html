@@ -11,7 +11,7 @@
 <body>
 <header>
   <h1>Paper spider</h1>
-  <p>Open a paper, say what to look for, and the matching words are highlighted. The spider waits beside the passage so it does not cover the text. Find more looks for a different place.{% if unlimited %} This account does not run out of searches.{% else %} Each search uses one of your {{ max_uses }} tries. After the last one, this account locks.{% endif %}</p>
+  <p>Open a paper and say what to look for. The matching words show in the box below right away. They light up on the page only when the spider reaches them, and the spider waits beside that passage so it does not cover the text. The spider stays on the page in view while you scroll. Find more looks for a different place.{% if unlimited %} This account does not run out of searches.{% else %} Each search uses one of your {{ max_uses }} tries. After the last one, this account locks.{% endif %}</p>
   <div class="account">
     <span id="uses"></span>
     <span>{{ user.username }}</span>
